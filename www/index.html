@@ -1,1 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Product Library</title>
+<style>
+  :root{
+    --paper:#F7F6F2;--surface:#FFFFFF;--ink:#1C1C1A;--muted:#6B6A64;--line:#E4E2DA;
+    --accent:#2B4FD6;--accent-soft:#EAEEFB;--danger:#C0392B;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+  body{padding-bottom:96px}
+  header{position:sticky;top:0;z-index:20;background:var(--paper);border-bottom:1px solid var(--line);padding:max(16px,env(safe-area-inset-top)) 18px 14px}
+  .title-row{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px}
+  h1{font-size:20px;font-weight:680;letter-spacing:-0.02em}
+  .count{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .search{position:relative}
+  .search input{width:100%;padding:13px 14px 13px 42px;border:1px solid var(--line);border-radius:11px;background:var(--surface);font-size:16px;font-family:var(--sans);color:var(--ink);outline:none;transition:border-color .15s,box-shadow .15s}
+  .search input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .search svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted)}
+  main{padding:18px 18px 0;max-width:680px;margin:0 auto}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px;animation:rise .28s cubic-bezier(.2,.7,.3,1) both}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .card-top{display:flex;gap:13px;align-items:flex-start}
+  .thumb{width:58px;height:58px;border-radius:10px;flex:none;overflow:hidden;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;border:1px solid var(--line)}
+  .thumb img{width:100%;height:100%;object-fit:cover}
+  .thumb .ph{color:var(--accent);opacity:.55}
+  .meta{flex:1;min-width:0}
+  .meta .name{font-size:16px;font-weight:620;letter-spacing:-0.01em;line-height:1.25;word-break:break-word}
+  .meta .code{font-family:var(--mono);font-size:13px;color:var(--muted);margin-top:3px;letter-spacing:.04em}
+  .del{flex:none;border:none;background:transparent;color:var(--muted);width:34px;height:34px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s}
+  .del:hover{background:#FBEAE8;color:var(--danger)}
+  .barcode-wrap{margin-top:12px;border:1px dashed var(--line);border-radius:10px;padding:10px 8px 6px;text-align:center;background:#fff}
+  .barcode-wrap svg{max-width:100%;height:auto}
+  .scan-hint{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:2px}
+  .empty{text-align:center;padding:64px 24px;color:var(--muted)}
+  .empty .mark{width:46px;height:46px;color:var(--accent);opacity:.5;margin:0 auto 16px}
+  .empty p{font-size:15px;line-height:1.5;max-width:300px;margin:0 auto}
+  .empty .lead{color:var(--ink);font-weight:600;margin-bottom:6px}
+  .fab{position:fixed;left:50%;transform:translateX(-50%);bottom:max(20px,env(safe-area-inset-bottom));z-index:25;background:var(--accent);color:#fff;border:none;cursor:pointer;padding:14px 24px;border-radius:999px;font-size:15px;font-weight:600;font-family:var(--sans);box-shadow:0 6px 20px rgba(43,79,214,.32);display:flex;align-items:center;gap:8px;transition:transform .12s}
+  .fab:active{transform:translateX(-50%) scale(.96)}
+  .scrim{position:fixed;inset:0;background:rgba(20,20,18,.42);z-index:40;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+  .scrim.open{opacity:1;pointer-events:auto}
+  .sheet{background:var(--surface);width:100%;max-width:520px;border-radius:18px 18px 0 0;padding:20px 20px max(24px,env(safe-area-inset-bottom));transform:translateY(16px);transition:transform .22s cubic-bezier(.2,.7,.3,1);max-height:92vh;overflow-y:auto}
+  .scrim.open .sheet{transform:none}
+  .sheet h2{font-size:18px;font-weight:660;letter-spacing:-0.01em;margin-bottom:18px}
+  label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:0 0 6px 2px}
+  .field{margin-bottom:16px}
+  .field input[type=text]{width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:11px;font-size:16px;font-family:var(--sans);color:var(--ink);outline:none;background:var(--paper);transition:border-color .15s,box-shadow .15s}
+  .field input.mono{font-family:var(--mono);letter-spacing:.12em}
+  .field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);background:#fff}
+  .hint{font-size:12px;color:var(--muted);margin:6px 2px 0}
+  .imgpick{display:flex;align-items:center;gap:12px}
+  .imgpick .preview{width:64px;height:64px;border-radius:11px;border:1px solid var(--line);overflow:hidden;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;flex:none}
+  .imgpick .preview img{width:100%;height:100%;object-fit:cover}
+  .imgpick .preview .ph{color:var(--accent);opacity:.5}
+  .pickbtn{border:1px solid var(--line);background:var(--paper);border-radius:10px;padding:10px 14px;font-size:14px;font-weight:560;font-family:var(--sans);color:var(--ink);cursor:pointer}
+  .pickbtn.clear{color:var(--danger);border-color:transparent;background:transparent;padding:10px 6px}
+  .filelabel{position:relative;overflow:hidden;display:inline-block}
+  .filelabel input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0}
+  .actions{display:flex;gap:10px;margin-top:8px}
+  .btn{flex:1;padding:14px;border-radius:11px;font-size:15px;font-weight:620;font-family:var(--sans);cursor:pointer;border:1px solid var(--line)}
+  .btn.ghost{background:var(--paper);color:var(--ink)}
+  .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .scanview{position:fixed;inset:0;background:#fff;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .2s}
+  .scanview.open{opacity:1;pointer-events:auto}
+  .scanview .sv-img{width:128px;height:128px;border-radius:16px;overflow:hidden;margin-bottom:18px;border:1px solid var(--line)}
+  .scanview .sv-img img{width:100%;height:100%;object-fit:cover}
+  .scanview .sv-name{font-size:18px;font-weight:640;margin-bottom:4px;text-align:center;padding:0 20px}
+  .scanview .sv-code{font-family:var(--mono);font-size:14px;color:var(--muted);letter-spacing:.18em;margin-bottom:30px}
+  .scanview svg{max-width:92vw;height:auto}
+  .scanview .close{position:absolute;top:max(18px,env(safe-area-inset-top));right:18px;width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:var(--paper);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink)}
+  .scanview .tip{margin-top:28px;font-size:13px;color:var(--muted);font-family:var(--mono);letter-spacing:.05em}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="title-row">
+    <h1>Product Library</h1>
+    <span class="count" id="count">0 items</span>
+  </div>
+  <div class="search">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>
+    <input id="search" type="text" inputmode="search" placeholder="Search by name or 7-digit code" autocomplete="off">
+  </div>
+</header>
 
+<main id="list"></main>
+
+<button class="fab" id="addBtn">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+  Add item
+</button>
+
+<div class="scrim" id="scrim">
+  <div class="sheet" role="dialog" aria-modal="true">
+    <h2>Add a product</h2>
+    <div class="field">
+      <label for="f-name">Name</label>
+      <input id="f-name" type="text" placeholder="e.g. Copper Pipe Fitting" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="f-code">7-digit code</label>
+      <input id="f-code" class="mono" type="text" inputmode="numeric" maxlength="7" placeholder="0000000" autocomplete="off">
+      <div class="hint" id="code-hint">Numbers only — exactly 7 digits.</div>
+    </div>
+    <div class="field">
+      <label>Image <span style="font-weight:400">(optional)</span></label>
+      <div class="imgpick">
+        <div class="preview" id="preview">
+          <svg class="ph" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="m21 15-4.5-4.5L7 20"/></svg>
+        </div>
+        <label class="pickbtn filelabel">Choose photo
+          <input id="f-image" type="file" accept="image/*">
+        </label>
+        <button class="pickbtn clear" id="clearImg" type="button" style="display:none">Remove</button>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn ghost" id="cancelBtn" type="button">Cancel</button>
+      <button class="btn primary" id="saveBtn" type="button" disabled>Save item</button>
+    </div>
+  </div>
+</div>
+
+<div class="scanview" id="scanview">
+  <button class="close" id="svClose" aria-label="Close">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+  </button>
+  <div class="sv-img" id="sv-img"></div>
+  <div class="sv-name" id="sv-name"></div>
+  <div class="sv-code" id="sv-code"></div>
+  <svg id="sv-barcode"></svg>
+  <div class="tip">Hold steady under a scanner</div>
+</div>
+
+<script>
+/* ===== Built-in Code 128-B barcode generator (no external library, works offline) ===== */
+const C128=["212222","222122","222221","121223","121322","131222","122213","122312","132212","221213","221312","231212","112232","122132","122231","113222","123122","123221","223211","221132","221231","213212","223112","312131","311222","321122","321221","312212","322112","322211","212123","212321","232121","111323","131123","131321","112313","132113","132311","211313","231113","231311","112133","112331","132131","113123","113321","133121","313121","211331","231131","213113","213311","213131","311123","311321","331121","312113","312311","332111","314111","221411","431111","111224","111422","121124","121421","141122","141221","112214","112412","122114","122411","142112","142211","241211","221114","413111","241112","134111","111242","121142","121241","114212","124112","124211","411212","421112","421211","212141","214121","412121","111143","111341","131141","114113","114311","411113","411311","113141","114131","311141","411131","211412","211214","211232","2331112"];
+function code128Bmodules(text){
+  let values=[104], sum=104;            // Start B
+  for(let i=0;i<text.length;i++){ const v=text.charCodeAt(i)-32; values.push(v); sum+=v*(i+1); }
+  values.push(sum%103);                 // checksum
+  values.push(106);                     // Stop
+  return values.map(v=>C128[v]).join("");
+}
+function renderBarcode(svg, code, {height=46, moduleW=2, fontSize=14, quiet=10}={}){
+  const widths = code128Bmodules(code).split("").map(Number);
+  const barModules = widths.reduce((a,b)=>a+b,0);
+  const w = (barModules + quiet*2)*moduleW;
+  const textH = fontSize+6, totalH = height+textH;
+  let x = quiet*moduleW, isBar = true, bars="";
+  for(const m of widths){ const ww=m*moduleW; if(isBar) bars+=`<rect x="${x}" y="0" width="${ww}" height="${height}" fill="#000"/>`; x+=ww; isBar=!isBar; }
+  svg.setAttribute("viewBox",`0 0 ${w} ${totalH}`);
+  svg.setAttribute("width",w); svg.setAttribute("height",totalH);
+  svg.innerHTML = `<rect x="0" y="0" width="${w}" height="${totalH}" fill="#fff"/>${bars}`
+    + `<text x="${w/2}" y="${height+fontSize}" text-anchor="middle" font-family="monospace" font-size="${fontSize}" letter-spacing="2" fill="#000">${code}</text>`;
+}
+
+/* ===== On-device storage (IndexedDB) ===== */
+const DB="productlib", STORE="items";
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>r.result.createObjectStore(STORE,{keyPath:"id"});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+async function dbAll(){const db=await openDB();return new Promise((res,rej)=>{const rq=db.transaction(STORE).objectStore(STORE).getAll();rq.onsuccess=()=>res(rq.result||[]);rq.onerror=()=>rej(rq.error);});}
+async function dbPut(item){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE,"readwrite");tx.objectStore(STORE).put(item);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});}
+async function dbDel(id){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE,"readwrite");tx.objectStore(STORE).delete(id);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});}
+
+let items=[], pendingImage=null;
+async function loadItems(){ try{ items=(await dbAll()).sort((a,b)=>(b.created||0)-(a.created||0)); }catch(e){ items=[]; } }
+async function saveItem(it){ try{ await dbPut(it); }catch(e){} }
+async function removeItem(id){ try{ await dbDel(id); }catch(e){} }
+
+/* ===== Image resize ===== */
+function resizeImage(file, maxDim=700, quality=0.72){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=e=>{const img=new Image();img.onload=()=>{let{width,height}=img;
+      if(width>height&&width>maxDim){height=Math.round(height*maxDim/width);width=maxDim;}
+      else if(height>=width&&height>maxDim){width=Math.round(width*maxDim/height);height=maxDim;}
+      const c=document.createElement("canvas");c.width=width;c.height=height;
+      c.getContext("2d").drawImage(img,0,0,width,height);resolve(c.toDataURL("image/jpeg",quality));};
+      img.onerror=reject;img.src=e.target.result;};
+    reader.onerror=reject;reader.readAsDataURL(file);
+  });
+}
+
+/* ===== Render ===== */
+const listEl=document.getElementById("list"),countEl=document.getElementById("count"),searchEl=document.getElementById("search");
+function matches(it,q){ if(!q)return true; q=q.toLowerCase().trim(); return it.name.toLowerCase().includes(q)||it.code.includes(q); }
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function render(){
+  const q=searchEl.value, visible=items.filter(i=>matches(i,q));
+  countEl.textContent=items.length+(items.length===1?" item":" items");
+  listEl.innerHTML="";
+  if(items.length===0){listEl.innerHTML=`<div class="empty"><svg class="mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M11 4v16M15 8v8M19 4v16"/></svg><p class="lead">Your library is empty</p><p>Add your first product to generate its scannable barcode.</p></div>`;return;}
+  if(visible.length===0){listEl.innerHTML=`<div class="empty"><p class="lead">No matches</p><p>Nothing here matches "<b>${escapeHtml(q)}</b>". Check the name or code.</p></div>`;return;}
+  for(const item of visible){
+    const card=document.createElement("div");card.className="card";card.style.cursor="pointer";card.dataset.open=item.id;
+    const thumb=item.image?`<div class="thumb"><img src="${item.image}" alt=""></div>`:`<div class="thumb"><svg class="ph" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="m21 15-4.5-4.5L7 20"/></svg></div>`;
+    card.innerHTML=`<div class="card-top">${thumb}<div class="meta"><div class="name">${escapeHtml(item.name)}</div><div class="code">${escapeHtml(item.code)}</div></div><button class="del" title="Remove" data-id="${item.id}" aria-label="Remove ${escapeHtml(item.name)}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button></div><div class="barcode-wrap"><svg class="bc"></svg><div class="scan-hint">Tap to view &amp; scan</div></div>`;
+    listEl.appendChild(card);
+    try{ renderBarcode(card.querySelector(".bc"), item.code, {height:46,fontSize:14}); }catch(e){}
+  }
+}
+listEl.addEventListener("click", async (e)=>{
+  const del=e.target.closest(".del");
+  if(del){ const id=del.dataset.id, it=items.find(i=>i.id===id);
+    if(it&&confirm(`Remove "${it.name}" from the library?`)){ items=items.filter(i=>i.id!==id); render(); removeItem(id); } return; }
+  const card=e.target.closest("[data-open]"); if(card) openScan(card.dataset.open);
+});
+searchEl.addEventListener("input", render);
+
+/* ===== Add sheet ===== */
+const scrim=document.getElementById("scrim"),nameIn=document.getElementById("f-name"),codeIn=document.getElementById("f-code"),codeHint=document.getElementById("code-hint"),saveBtn=document.getElementById("saveBtn"),fileIn=document.getElementById("f-image"),preview=document.getElementById("preview"),clearImgBtn=document.getElementById("clearImg");
+const phSVG=`<svg class="ph" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="m21 15-4.5-4.5L7 20"/></svg>`;
+function openSheet(){ resetForm(); scrim.classList.add("open"); setTimeout(()=>nameIn.focus(),250); }
+function closeSheet(){ scrim.classList.remove("open"); }
+function resetForm(){ nameIn.value="";codeIn.value="";pendingImage=null;fileIn.value="";preview.innerHTML=phSVG;clearImgBtn.style.display="none";codeHint.textContent="Numbers only — exactly 7 digits.";validate(); }
+codeIn.addEventListener("input", ()=>{
+  const cleaned=codeIn.value.replace(/\D/g,"").slice(0,7);
+  if(cleaned!==codeIn.value){const drop=codeIn.value.length-cleaned.length;const pos=Math.max(0,(codeIn.selectionStart||cleaned.length)-drop);codeIn.value=cleaned;try{codeIn.setSelectionRange(pos,pos);}catch(e){}}
+  validate();
+});
+nameIn.addEventListener("input", validate);
+function validate(){
+  const okName=nameIn.value.trim().length>0, okCode=/^\d{7}$/.test(codeIn.value);
+  codeHint.textContent=(codeIn.value.length>0&&!okCode)?`${codeIn.value.length}/7 digits`:"Numbers only — exactly 7 digits.";
+  saveBtn.disabled=!(okName&&okCode);
+}
+document.getElementById("addBtn").addEventListener("click", openSheet);
+document.getElementById("cancelBtn").addEventListener("click", closeSheet);
+scrim.addEventListener("click", e=>{ if(e.target===scrim) closeSheet(); });
+fileIn.addEventListener("change", async ()=>{
+  const f=fileIn.files[0]; if(!f) return;
+  try{ pendingImage=await resizeImage(f); preview.innerHTML=`<img src="${pendingImage}" alt="">`; clearImgBtn.style.display="inline-block"; }
+  catch(e){ alert("Couldn't read that image. Try another."); }
+});
+clearImgBtn.addEventListener("click", ()=>{ pendingImage=null;fileIn.value="";preview.innerHTML=phSVG;clearImgBtn.style.display="none"; });
+saveBtn.addEventListener("click", ()=>{
+  const name=nameIn.value.trim(), code=codeIn.value;
+  if(!name||!/^\d{7}$/.test(code)) return;
+  const item={id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),name,code,image:pendingImage,created:Date.now()};
+  items.unshift(item); render(); closeSheet(); saveItem(item);
+});
+
+/* ===== Scan / detail view ===== */
+const scanview=document.getElementById("scanview");
+function openScan(id){
+  const it=items.find(i=>i.id===id); if(!it) return;
+  const imgEl=document.getElementById("sv-img");
+  imgEl.innerHTML=it.image?`<img src="${it.image}" alt="">`:""; imgEl.style.display=it.image?"block":"none";
+  document.getElementById("sv-name").textContent=it.name;
+  document.getElementById("sv-code").textContent=it.code;
+  try{ renderBarcode(document.getElementById("sv-barcode"), it.code, {height:120,fontSize:20,moduleW:3,quiet:12}); }catch(e){}
+  scanview.classList.add("open");
+}
+document.getElementById("svClose").addEventListener("click", ()=>scanview.classList.remove("open"));
+
+/* ===== Boot ===== */
+(async function(){ await loadItems(); render(); })();
+</script>
+</body>
+</html>
